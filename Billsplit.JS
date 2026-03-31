@@ -71,7 +71,7 @@ function addItem(){
 }
 function removeItem(id){state.items=state.items.filter(i=>i.id!==id);renderItems();saveState();}
 function updateItemName(id,val){const it=state.items.find(i=>i.id===id);if(it){it.name=val;saveState();}}
-function updateItemPrice(id,val){const it=state.items.find(i=>i.id===id);if(it){it.price=val;saveState();}}
+function updateItemPrice(id,val){const it=state.items.find(i=>i.id===id);if(it){const n=parseFloat(val);it.price=(n>999999||val.replace('.','').length>8)?it.price:val;saveState();}}
 function togglePerson(itemId,personId){
   const it=state.items.find(i=>i.id===itemId);if(!it)return;
   const idx=it.assignedTo.indexOf(personId);
@@ -89,8 +89,8 @@ function renderItems(){
     <div class="item-row">
       <div class="item-top">
         <div class="item-inputs">
-          <input class="item-name-input" placeholder="ชื่อรายการ เช่น ส้มตำ" value="${esc(it.name)}" oninput="updateItemName('${it.id}',this.value)"/>
-          <div class="item-price-wrap"><span>฿</span><input class="item-price-input" placeholder="0" type="number" inputmode="decimal" min="0" value="${it.price}" oninput="updateItemPrice('${it.id}',this.value)"/></div>
+          <input class="item-name-input" placeholder="ชื่อรายการ เช่น ส้มตำ" value="${esc(it.name)}" maxlength="40" oninput="updateItemName('${it.id}',this.value)"/>
+          <div class="item-price-wrap"><span>฿</span><input class="item-price-input" placeholder="0" type="number" inputmode="decimal" min="0" max="999999" value="${it.price}" oninput="updateItemPrice('${it.id}',this.value)"/></div>
         </div>
         <button class="item-delete" onclick="removeItem('${it.id}')">🗑</button>
       </div>
@@ -158,7 +158,7 @@ function renderSummary(){
     ${state.sc?`<div class="total-row"><span>Service Charge 10%</span><span>${fmt(sc)}</span></div>`:''}
     <div class="total-row divider"><span class="grand-total-label">Grand Total</span><span class="grand-total-amount">${fmt(total)}</span></div>
   </div>`;
-  h+=`<div class="section-label">สรุปรายบุคคล <span style="font-size:11px;font-weight:400">← เลื่อนดู</span></div><div class="person-cards-scroll">`;
+  h+=`<div class="section-label">สรุปรายบุคคล</div><div class="person-cards-wrap"><div class="person-cards-scroll" id="cards-scroll">`;
   state.people.forEach((p,pi)=>{
     const d=pt[p.id]||{raw:0,fees:0,total:0,items:[]};
     h+=`<div class="person-summary-card">
@@ -168,6 +168,13 @@ function renderSummary(){
       <div class="ptotal"><span class="ptotal-label">รวม</span><span class="ptotal-amount">${fmt(d.total)}</span></div>
     </div>`;
   });
+  h+=`</div>`;
+  if(state.people.length>1){
+    h+=`<div class="cards-nav">
+      <button class="cards-nav-btn" id="cards-prev" onclick="scrollCards(-1)" title="ก่อนหน้า">‹</button>
+      <button class="cards-nav-btn" id="cards-next" onclick="scrollCards(1)" title="ถัดไป">›</button>
+    </div>`;
+  }
   h+=`</div>`;
   if(state.people.length)h+=`<div style="height:14px"></div><button class="btn-primary" onclick="goTo('payment')">💳 คิดเงิน →</button>`;
   document.getElementById('summary-content').innerHTML=h;
@@ -237,6 +244,12 @@ function ppPayload(id,amount){
   const amt=amount>0?amount.toFixed(2):'';
   const p=tlv('00','01')+ma+tlv('53','764')+(amt?tlv('54',amt):'')+tlv('58','TH')+'6304';
   return p+crc(p);
+}
+
+function scrollCards(dir){
+  const el=document.getElementById('cards-scroll');
+  if(!el)return;
+  el.scrollBy({left:dir*200,behavior:'smooth'});
 }
 
 // ===== EXPORT =====
